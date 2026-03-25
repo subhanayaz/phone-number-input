@@ -19,7 +19,11 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "playground:install": "node ./scripts/playground-install.mjs",
+    "playground:dev": "npm run playground:install && npm --prefix playground run dev",
+    "playground:build": "npm run playground:install && npm --prefix playground run build",
+    "playground:preview": "npm --prefix playground run preview"
   },
   "keywords": [
     "react",

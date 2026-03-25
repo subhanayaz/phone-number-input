@@ -590,7 +590,7 @@ var defaultStyles = {
     borderRadius: 6,
     border: "1px solid #bbb",
     alignItems: "center",
-    overflow: "hidden"
+    overflow: "visible"
   },
   toggleButton: {
     display: "flex",
@@ -604,7 +604,7 @@ var defaultStyles = {
   },
   dropdown: {
     position: "absolute",
-    top: "100%",
+    top: "calc(100% + 4px)",
     left: 0,
     right: 0,
     maxHeight: 240,

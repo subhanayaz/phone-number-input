@@ -48,7 +48,7 @@ const defaultStyles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     border: '1px solid #bbb',
     alignItems: 'center',
-    overflow: 'hidden'
+    overflow: 'visible'
   },
   toggleButton: {
     display: 'flex',
@@ -62,7 +62,7 @@ const defaultStyles: Record<string, React.CSSProperties> = {
   },
   dropdown: {
     position: 'absolute',
-    top: '100%',
+    top: 'calc(100% + 4px)',
     left: 0,
     right: 0,
     maxHeight: 240,
