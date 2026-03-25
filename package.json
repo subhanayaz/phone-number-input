@@ -1,0 +1,43 @@
+{
+  "name": "lightphone-input",
+  "version": "0.1.0",
+  "description": "Tree-shakeable React phone number input component with validation, masking, and country detection for 200+ countries.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "react",
+    "phone",
+    "input",
+    "international",
+    "phone-number"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "country-data": "^0.0.31",
+    "tsup": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}
