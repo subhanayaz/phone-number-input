@@ -66,13 +66,25 @@ const defaultStyles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     maxHeight: 240,
-    overflow: 'auto',
+    overflow: 'hidden',
     background: '#fff',
     border: '1px solid #ccc',
     borderRadius: 6,
     marginTop: 4,
     padding: 8,
     zIndex: 10
+  },
+  dropdownSearchRow: {
+    position: 'sticky',
+    top: 0,
+    background: '#fff',
+    paddingBottom: 6,
+    zIndex: 1
+  },
+  dropdownList: {
+    overflow: 'auto',
+    maxHeight: 240,
+    borderRadius: 6
   },
   countryItem: {
     display: 'flex',
@@ -145,8 +157,10 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>((p
 
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeCountryIndex, setActiveCountryIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -170,6 +184,26 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>((p
     return countryList.filter((candidate) => candidate.name.toLowerCase().includes(q) || candidate.dialCode.includes(q));
   }, [countryList, search]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveCountryIndex(-1);
+      return;
+    }
+
+    const selectedIndex = filteredCountries.findIndex((candidate) => candidate.iso2 === selectedCountry.iso2);
+    const nextIndex = selectedIndex >= 0 ? selectedIndex : filteredCountries.length > 0 ? 0 : -1;
+    setActiveCountryIndex(nextIndex);
+  }, [filteredCountries, isOpen, selectedCountry.iso2]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeCountryIndex < 0) return;
+    if (!listRef.current) return;
+
+    const activeOption = listRef.current.querySelector<HTMLElement>(`[data-country-index="${activeCountryIndex}"]`);
+    activeOption?.scrollIntoView({ block: 'nearest' });
+  }, [activeCountryIndex, isOpen]);
+
   const handleToggle = () => setIsOpen((prev) => !prev);
 
   const handleCountryPick = (next: CountryMeta) => {
@@ -191,9 +225,51 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>((p
   const inputClass = inputClassName ?? undefined;
   const dropdownStyle = dropdownClassName ? undefined : defaultStyles.dropdown;
 
+  const moveActiveCountry = useCallback(
+    (direction: 'up' | 'down') => {
+      if (!isOpen) {
+        setIsOpen(true);
+        return;
+      }
+
+      if (filteredCountries.length === 0) return;
+
+      setActiveCountryIndex((currentIndex) => {
+        const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+        const nextIndex = direction === 'down' ? safeIndex + 1 : safeIndex - 1;
+        const boundedIndex = Math.max(0, Math.min(filteredCountries.length - 1, nextIndex));
+        return boundedIndex;
+      });
+    },
+    [filteredCountries.length, isOpen]
+  );
+
+  const pickActiveCountry = useCallback(() => {
+    if (!isOpen) return;
+    if (activeCountryIndex < 0) return;
+    const candidate = filteredCountries[activeCountryIndex];
+    if (!candidate) return;
+    handleCountryPick(candidate);
+  }, [activeCountryIndex, filteredCountries, isOpen]);
+
   const handleWrapperKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       setIsOpen(false);
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveActiveCountry('down');
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActiveCountry('up');
+    }
+
+    if (event.key === 'Enter' && isOpen) {
+      event.preventDefault();
+      pickActiveCountry();
     }
   };
 
@@ -233,39 +309,68 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>((p
           }}
         />
         {isOpen && (
-          <div className={dropdownClassName} style={dropdownStyle} role="listbox" aria-label="Country list">
-            <input
-              ref={searchInputRef}
-              type="search"
-              placeholder="Search country"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              style={defaultStyles.searchInput}
-            />
-            {filteredCountries.map((candidate) => (
-              <div
-                key={candidate.iso2}
-                role="option"
-                aria-selected={candidate.iso2 === selectedCountry.iso2}
-                onClick={() => handleCountryPick(candidate)}
+          <div
+            className={dropdownClassName}
+            style={{ ...dropdownStyle, display: 'flex', flexDirection: 'column' }}
+            role="listbox"
+            aria-label="Country list"
+            aria-activedescendant={
+              activeCountryIndex >= 0 ? `phone-input-country-option-${filteredCountries[activeCountryIndex]?.iso2 ?? 'none'}` : undefined
+            }
+          >
+            <div style={defaultStyles.dropdownSearchRow}>
+              <input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Search country"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    moveActiveCountry('down');
+                  }
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    moveActiveCountry('up');
+                  }
                   if (event.key === 'Enter') {
-                    handleCountryPick(candidate);
+                    event.preventDefault();
+                    pickActiveCountry();
                   }
                 }}
-                tabIndex={0}
-                style={{
-                  ...defaultStyles.countryItem,
-                  ...(candidate.iso2 === selectedCountry.iso2 ? defaultStyles.countryFocus : undefined)
-                }}
-              >
-                <span>
-                  {showFlag && `${toFlagEmoji(candidate.iso2)} `}
-                  {candidate.name}
-                </span>
-                <span>{candidate.dialCode}</span>
-              </div>
-            ))}
+                style={defaultStyles.searchInput}
+              />
+            </div>
+            <div ref={listRef} style={{ ...defaultStyles.dropdownList, flex: 1, maxHeight: 240 - 44 }}>
+              {filteredCountries.map((candidate, index) => {
+                const isActive = index === activeCountryIndex;
+                const isSelected = candidate.iso2 === selectedCountry.iso2;
+                return (
+                  <div
+                    id={`phone-input-country-option-${candidate.iso2}`}
+                    key={candidate.iso2}
+                    role="option"
+                    aria-selected={isSelected}
+                    data-country-index={index}
+                    onMouseEnter={() => setActiveCountryIndex(index)}
+                    onClick={() => handleCountryPick(candidate)}
+                    tabIndex={-1}
+                    style={{
+                      ...defaultStyles.countryItem,
+                      ...(isActive ? defaultStyles.countryFocus : undefined),
+                      ...(isSelected && !isActive ? { fontWeight: 600 } : undefined)
+                    }}
+                  >
+                    <span>
+                      {showFlag && `${toFlagEmoji(candidate.iso2)} `}
+                      {candidate.name}
+                    </span>
+                    <span>{candidate.dialCode}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
