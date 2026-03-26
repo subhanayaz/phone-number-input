@@ -1,0 +1,77 @@
+.page {
+  padding: 40px 20px 64px;
+  text-align: left;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.subtitle {
+  margin-top: 10px;
+  max-width: 78ch;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(320px, 520px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--bg) 90%, var(--code-bg));
+  padding: 16px;
+  box-shadow: var(--shadow);
+  min-height: 180px;
+}
+
+.panelTitle {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.panelBody {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--code-bg);
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/*
+  Ensure the dropdown isn't clipped by layout containers.
+  (Many popovers are absolutely positioned inside the input's wrapper.)
+*/
+.page,
+.content {
+  overflow: visible;
+}
+
+@media (max-width: 1024px) {
+  .page {
+    padding: 28px 14px 48px;
+  }
+
+  .content {
+    grid-template-columns: 1fr;
+  }
+}

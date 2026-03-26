@@ -1,45 +1,149 @@
-# Lightphone Input
+# lightphone-input
 
-**Lightphone Input** is a lightweight, tree-shakeable React phone number component designed for modern bundles (targeting <10 KB gzipped without tree-shaking) while supporting 200+ countries. It ships with locale-aware country detection, strict/loose validation modes, as-you-type formatting, and accessible country selection.
+Lightweight, tree‑shakeable **React phone number input** with:
 
-## Features
-- ✅ Validation against country-specific digit ranges without pulling in `libphonenumber`
-- 🌍 Automatic country detection via `navigator.language` or a configurable fallback
-- 🧰 Customizable country picker with flags, dial codes, and search
-- 🧭 Accessible ARIA-friendly dropdown with keyboard handling
-- ✏️ Controlled and uncontrolled inputs with masking that preserves cursor position
-- 🔗 Hooks (`usePhoneInput`, `useCountry`) plus helpers for formatting and validation
-- 🎯 Fully typed TypeScript entrypoints plus `tsup` build for ESM/CJS
+- **200+ countries** (dial codes + min/max lengths)
+- **As‑you‑type formatting** (national or international)
+- **Strict / loose validation** without `libphonenumber`
+- **Country picker** (flag, dial code, search)
+- **Typed API** + hook-first core (`usePhoneInput`)
 
 ## Install
+
 ```bash
 npm install lightphone-input
 ```
 
-The package treats `react`/`react-dom` as peers, so be sure your project provides them.
+`react` and `react-dom` are **peer dependencies** (React 18+).
 
-## Basic Usage
+## Quick start
+
 ```tsx
-import { PhoneInput } from 'lightphone-input';
+import { useMemo, useState } from 'react';
+import { PhoneInput, type PhoneInputState, countries } from 'lightphone-input';
 
-export default function CheckoutPhone() {
+export function CheckoutPhone() {
+  const [latestState, setLatestState] = useState<PhoneInputState | null>(null);
+
+  const helperText = useMemo(() => {
+    if (!latestState) return 'Type a phone number';
+    return latestState.isValid ? `Valid (${latestState.country.iso2})` : `Invalid (${latestState.country.iso2})`;
+  }, [latestState]);
+
   return (
     <PhoneInput
-      label="Mobile number"
-      helperText="Enter the number we can reach you on"
+      label="Phone number"
+      placeholder="(555) 123-4567"
       defaultCountry="US"
+      format="national"
+      mode="strict"
+      countries={countries}
+      helperText={helperText}
+      onValueChange={setLatestState}
+    />
+  );
+}
+```
+
+## Common recipes
+
+### Controlled input
+
+```tsx
+import { useState } from 'react';
+import { PhoneInput } from 'lightphone-input';
+
+export function ControlledPhone() {
+  const [digits, setDigits] = useState('');
+
+  return (
+    <PhoneInput
+      label="Phone"
+      value={digits}
+      onValueChange={(nextState) => setDigits(nextState.digits)}
+      defaultCountry="GB"
       format="international"
     />
   );
 }
 ```
 
-## Hooks
+### Restrict the country list
+
+```tsx
+import { PhoneInput, countries } from 'lightphone-input';
+
+const allowedCountries = countries.filter((country) => ['US', 'CA', 'MX'].includes(country.iso2));
+
+export function NorthAmericaOnly() {
+  return <PhoneInput label="Phone" defaultCountry="US" countries={allowedCountries} />;
+}
+```
+
+### Locale-based default country
+
+```tsx
+import { PhoneInput } from 'lightphone-input';
+
+export function LocaleDefault() {
+  return <PhoneInput label="Phone" localeDetection fallbackCountry="US" />;
+}
+```
+
+### “Loose” validation (accept partial numbers)
+
+```tsx
+import { PhoneInput } from 'lightphone-input';
+
+export function LeadCapture() {
+  return <PhoneInput label="Phone" mode="loose" />;
+}
+```
+
+## API
+
+### `<PhoneInput />` props
+
+All standard `<input>` props are supported (except `value` / `defaultValue`, which are redefined).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `value` | `string` | `undefined` | Controlled digits value. |
+| `defaultValue` | `string` | `undefined` | Uncontrolled starting digits value. |
+| `onValueChange` | `(state: PhoneInputState) => void` | `undefined` | Called on every change with the full computed state. |
+| `mode` | `'strict' \| 'loose'` | `'strict'` | Validation mode. `strict` enforces min/max lengths; `loose` only enforces minimum. |
+| `format` | `'national' \| 'international'` | `'national'` | Display formatting mode. |
+| `countries` | `CountryMeta[]` | `countries` | Provide a custom subset to restrict the picker. |
+| `defaultCountry` | `string` | (detected) | Initial ISO‑3166 alpha‑2 (e.g. `'US'`). Used when `country` is not controlled. |
+| `country` | `string` | `undefined` | Controlled country ISO‑3166 alpha‑2. |
+| `fallbackCountry` | `string` | `'US'` | Used when locale detection can’t map to a supported country. |
+| `onCountryChange` | `(country: CountryMeta) => void` | `undefined` | Called when the user picks a new country. |
+| `locale` | `string` | `undefined` | Override locale (defaults to `navigator.language` when available). |
+| `localeDetection` | `boolean` | `false` | If `true`, tries to pick a default country from the locale. |
+| `label` | `string` | `undefined` | Optional label rendered above the input. |
+| `helperText` | `string` | `undefined` | Optional text rendered below the input. |
+| `showFlag` | `boolean` | `true` | Show/hide flag emoji in the toggle and list. |
+| `inputClassName` | `string` | `undefined` | Class applied to the `<input />`. |
+| `dropdownClassName` | `string` | `undefined` | Class applied to the dropdown container (when provided, inline dropdown styles are not used). |
+
+### `PhoneInputState`
+
+`onValueChange` receives:
+
+- `digits`: normalized digits (no formatting)
+- `display`: formatted string shown to the user
+- `country`: selected `CountryMeta`
+- `isValid`: boolean based on `mode` and country length rules
+
+### Hook: `usePhoneInput(options)`
+
+Use this when you want to build your own UI but reuse the parsing/formatting/validation logic.
+
 ```tsx
 import { usePhoneInput } from 'lightphone-input';
 
-function ControlledPhoneField() {
-  const { inputProps, country, digits, isValid } = usePhoneInput({
+export function CustomField() {
+  const { inputProps, country, state, setCountry } = usePhoneInput({
     defaultCountry: 'IN',
     mode: 'strict',
     format: 'national'
@@ -47,89 +151,73 @@ function ControlledPhoneField() {
 
   return (
     <div>
-      <p>{country.name}</p>
-      <input {...inputProps} placeholder="Enter number" />
-      <p>{isValid ? 'Valid' : 'Invalid'}</p>
+      <div>Country: {country.name}</div>
+      <input {...inputProps} placeholder="Phone number" />
+      <div>Digits: {state.digits}</div>
+      <button type="button" onClick={() => setCountry('US')}>
+        Switch to US
+      </button>
     </div>
   );
 }
 ```
 
-### `useCountry`
+## Styling
 
-If you want just the detection + setter logic (for example to wire a custom dropdown), grab `useCountry`:
+`PhoneInput` supports three styling entry points:
+
+- `className`: applied to the outer container
+- `inputClassName`: applied to the `<input />`
+- `dropdownClassName`: applied to the country dropdown
+
+### Example
 
 ```tsx
-import { useCountry } from 'lightphone-input';
+import { PhoneInput } from 'lightphone-input';
+import './phone-field.css';
 
-const { country, setCountry } = useCountry({ fallback: 'CA' });
-```
-
-## Validation & Formatting utilities
-```ts
-import { validatePhone, formatPhone } from 'lightphone-input';
-
-const input = '+14155552671';
-const isValid = validatePhone(input, undefined, 'strict');
-const formatted = formatPhone(input, undefined, { international: true });
-```
-
-## `<PhoneInput />` Props
-| Prop | Type | Description |
-| --- | --- | --- |
-| `value` | `string` | Controlled digit string (non-formatted). | 
-| `defaultValue` | `string` | Initial numeric value (numbers only). |
-| `onValueChange` | `(state) => void` | Receives `{ digits, display, country, isValid, mode, format }` after every keystroke. |
-| `mode` | `'strict' | `'loose'` | Validation mode: `strict` enforces min/max digit counts; `loose` only checks minimum. |
-| `format` | `'national' | `'international'` | Display format. |
-| `defaultCountry` | `string` | ISO-3166 code to seed the picker (falls back to locale). |
-| `country` | `string` | Controlled country selection (ISO). |
-| `onCountryChange` | `(country) => void` | Notifies when the user selects another country. |
-| `locale` | `string` | Overrides `navigator.language` for country detection. |
-| `localeDetection` | `boolean` | Toggle automatic detection (defaults to `true`). |
-| `helperText` | `string` | Optional helper/validation text rendered below the field. |
-| `showFlag` | `boolean` | Toggle flag rendering in the dropdown and toggle button (default `true`). |
-| `countries` | `CountryMeta[]` | Custom subset of countries if you need to restrict the picker. |
-| `placeholder`, `name`, `disabled`, etc. | (inherited) | Standard `<input>` props pass through. |
-
-## Hook API
-### `usePhoneInput(options)`
-| Option | Description |
-| --- | --- |
-| `value` | Controlled digits string. |
-| `defaultValue` | Starting digits for uncontrolled mode. |
-| `mode` | `'strict'` (default) or `'loose'`. |
-| `format` | `'national'` (default) or `'international'`. |
-| `defaultCountry`, `country`, `fallbackCountry`, `locale`, `localeDetection` | Same behavior as `<PhoneInput />`. |
-| `onCountryChange` | Called after user picks another country. |
-| `onValueChange` | Receives the same `{ digits, display, country, isValid, mode, format }`. |
-
-Returns:
-- `inputProps` (spread onto a `<input type="tel" />`) with cursor-preserving formatting
-- `country` / `setCountry` helpers
-- `state` (current digits, rendered display, validation, etc.)
-- `isValid`, `digits`, `format`, `mode`
-
-## Supporting 200+ Countries
-Metadata is delivered via `src/data/countries.ts`, covering UN member states and territories (≈247 entries) with ISO codes, dial codes, and min/max lengths. Flag emojis are generated via regional indicator pairs for fast rendering.
-
-## Building or Contributing
-```bash
-npm run build
-```
-It uses `tsup` to emit CJS/ESM bundles plus `.d.ts` files.
-
-## Example
-```tsx
-import { PhoneInput, usePhoneInput } from 'lightphone-input';
-
-function Example() {
-  const { inputProps, state } = usePhoneInput({ format: 'international', defaultCountry: 'GB' });
+export function StyledPhoneField() {
   return (
-    <div>
-      <PhoneInput defaultCountry="GB" onValueChange={(s) => console.log(s)} />
-      <pre>{state.digits}</pre>
-    </div>
+    <PhoneInput
+      label="Phone number"
+      defaultCountry="US"
+      className="phoneField"
+      inputClassName="phoneFieldInput"
+      dropdownClassName="phoneFieldDropdown"
+    />
   );
 }
 ```
+
+```css
+.phoneField {
+  max-width: 360px;
+}
+
+.phoneFieldInput {
+  font-size: 14px;
+  color: #111827;
+}
+
+.phoneFieldDropdown {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+}
+```
+
+If you pass `dropdownClassName`, your class controls dropdown styling instead of the built-in inline dropdown styles.
+
+## Utilities
+
+```ts
+import { formatPhone, validatePhone } from 'lightphone-input';
+
+validatePhone('+14155552671', 'US', 'strict');
+formatPhone('+14155552671', 'US', { international: true });
+```
+
+## Data set
+
+Country metadata ships with the package and is exposed as `countries`. It includes ISO codes, dial codes, and min/max digit lengths.
