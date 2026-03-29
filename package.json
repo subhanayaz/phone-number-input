@@ -18,6 +18,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
     "build": "tsup",
     "prepare": "npm run build",
     "playground:install": "node ./scripts/playground-install.mjs",
@@ -39,8 +41,18 @@
     "react-dom": ">=18"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.3.7",
     "country-data": "^0.0.31",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-jest": "^29.4.6",
     "tsup": "^7.0.0",
     "typescript": "^5.0.0"
   }
